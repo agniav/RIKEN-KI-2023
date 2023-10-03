@@ -1,0 +1,63 @@
+---
+title: "Agnia Vibriani"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-10-02"
+---
+# Task 4
+## Using R example datasets
+**Describe briefly the content of the CO2 dataset using the help function**
+```{r}
+#load the data
+data("CO2")
+?CO2
+```
+The experiment is analyzing the cold tolerance of the grass species *Echinochola cruss-galli* by measuring the CO2 response curve for photosynthesis. The data contain the CO2 uptake at several levels of CO2 concentration in the chilled and non-chilled plants.
+
+**What is the average and median CO2 uptake of the plants from Quebec and Missisipi?**
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+data(CO2)
+#select the plant originated from quebec only
+Quebec <-filter(CO2, Type=="Quebec")
+summary(Quebec)
+#select the plant originated from Mississippi only
+Mississippi<-filter(CO2, Type=="Mississippi")
+summary(Mississippi)
+```
+
+
+```{r, echo=FALSE}
+#generate the table
+data <-data_frame(
+  Plant_Origin = c("Quebec", "Mississippi"),
+  Mean = c(33.54, 20.88),
+  Median = c(37.15, 19.30))
+knitr::kable(data, caption = "CO2 uptake based on plant origin")
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
