@@ -6,17 +6,23 @@ output:
   pdf_document: default
 date: "2023-10-02"
 ---
+
 # Task 4
+
 ## Using R example datasets
+
 **Describe briefly the content of the CO2 dataset using the help function**
+
 ```{r}
 #load the data
 data("CO2")
 ?CO2
 ```
+
 The experiment is analyzing the cold tolerance of the grass species *Echinochola cruss-galli* by measuring the CO2 response curve for photosynthesis. The data contain the CO2 uptake at several levels of CO2 concentration in the chilled and non-chilled plants.
 
 **What is the average and median CO2 uptake of the plants from Quebec and Missisipi?**
+
 ```{r}
 library(tidyverse)
 library(dplyr)
@@ -32,7 +38,6 @@ Mississippi<-filter(CO2, Type=="Mississippi")
 summary(Mississippi)
 ```
 
-
 ```{r}
 #generate the table
 data <-data_frame(
@@ -42,4 +47,4 @@ data <-data_frame(
 knitr::kable(data, caption = "CO2 uptake based on plant origin")
 ```
 
-**[OPTIONAL]In the airway example data from Bioconductor, how many genes are expressed in each sample? How many genes are ot expressed in any sample?** 
+**[OPTIONAL]In the airway example data from Bioconductor, how many genes are expressed in each sample? How many genes are ot expressed in any sample?**
