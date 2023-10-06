@@ -4,26 +4,54 @@ output: pdf_document
 date: "2023-10-03"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+#R Functions
+
+**1. Write a function that calculates the ratio of the mean and the median of a given vector**
+
+*symmetrically distributed if the ratio of the mean and median close to 1*
+
+```{r}
+x <- c(1:10)
+ratio_mean_median <- function(x){
+  mean_value <- mean(x, na.rm=TRUE)
+  median_value <- median(x, na.rm=TRUE)
+  ratio <- mean_value/median_value
+  ratio
+}
+ratio_mean_median(x)
+#na.rm=TRUE to handle missing value
 ```
 
-## R Markdown
+*right-skewed data if the ratio of the mean and median is greater than 1*
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+y <- c(1,2,3,4,50)
+ratio_mean_median(y)
 ```
 
-## Including Plots
+*left-skewed data if the ratio of the mean and median is less than 1*
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+z <-c(-2,30,31,32,33,34)
+ratio_mean_median(z)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+**2. Write a function that ignores the lowest and the highest value from a given vector and calculate the mean**
+
+```{r}
+x <-c(1:6)
+mean_without_max_min <-function(x){
+  ignore_max_min <- x[c(-which.max(x), -which.min(x))]
+  result<-mean(ignore_max_min)
+  result
+}
+mean_without_max_min(x)
+```
+
+**Short explanation about piping**
+
+The pipe operator chains together a sequence of operation by passing the results as an input to the next operation, in a natural and logical order of thinking. The pipes are not recommended to use when the operation is simple (might add unnecessary complexity), too long (hard to debug), has multiple output/input, and the sequence doesn't match the logic.
+
+**Short explanation about apply-family of functions (apply, lapply, sapply)**
+
+These functions apply a specified function to selected rows or columns of matrices, data frame, and list. They offers flexibility and efficiency when dealing with large datasets, particularly during data preprocessing such as data cleaning, normalization, or summarizing the descriptive statistics.
