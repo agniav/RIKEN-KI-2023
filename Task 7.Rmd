@@ -1,0 +1,122 @@
+---
+title: "Task 7"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-10-06"
+---
+#Tidybiology
+
+**Extract summary statistics (mean, median, maximum) for the following variable from the chromosom data: variations, protein, coding genes, and mRNA**
+
+```{r, message=FALSE, warning=FALSE, results=FALSE }
+#load the package needed
+library(tidyverse)
+library(gridExtra)
+library(tidybiology)
+data("chromosome")
+```
+
+```{r}
+#Extract the summary statistics of chromosome data for selected columns (variations, protein_codinggene, mi_rna)
+variable<-chromosome%>%
+select(variations, protein_codinggenes, mi_rna)
+summary(variable)
+```
+
+**How does the chromosome size distribute?**
+```{r distribution,fig.show='hold', fig.width=6, message=FALSE, warning=FALSE, fig.asp=0.618, out.width="50%", fig.align="center"}
+#Add kilobasepair column 
+new_chromosome <-chromosome%>%
+mutate(kbp=basepairs/1000000)
+
+#Annotation to ggplot
+annotation <-data.frame(x=c(round(min(new_chromosome$kbp),1), round(max(new_chromosome$kbp),1), round(mean(new_chromosome$kbp),1)),
+y=c(0.0075, 0.0035, 0.0075),
+label=c("min", "max", "mean"))
+
+#generate the distribution graph
+ggplot(new_chromosome, aes(kbp))+
+geom_histogram(aes(y=..density..), color="black",fill="lightblue", binwidth =30)+
+geom_rug()+
+geom_density(color="red", fill="red", alpha=0.3)+
+geom_text(data=annotation, aes(x=x, y=y, label=paste(label,x)), fontface="bold")+
+labs(title = "The distribution of chromosome size", x="chromosome size (kbp)", y="Density")   
+```
+According to this graph, the distribution of chromosome size is right-skewed, where most of the chromosome has a size around 46-200 kbp. 
+
+**Does the number of protein coding genes or miRNA correlate with the length of the chromosome?**
+
+```{r}
+#Calculate the correlation
+corPL <- cor(chromosome$protein_codinggenes, chromosome$length_mm)
+corPL
+```
+
+
+```{r}
+corML <- cor(chromosome$mi_rna, chromosome$length_mm)
+corML
+```
+
+```{r chromosome, fig.show='hold', fig.width=6, message=FALSE, warning=FALSE, fig.asp=0.618, out.width="50%", fig.align="center"}
+#define the title 
+titlePL <-str_wrap("Correlation of the chromosome length with the number of protein coding genes", width=30)
+titleML <-str_wrap("Correlation of the chromosome length with the number of miRNA", width=30)
+
+#generate the graph
+plotProtein <- ggplot(chromosome, aes(x = protein_codinggenes, y = length_mm)) +
+geom_point() +
+geom_smooth(method = lm, color="black", se=FALSE)+
+labs(title = titlePL, x="Protein coding genes", y="Chromosome length (mm)")+
+theme_classic()
+
+plotMiRNA <- ggplot(chromosome, aes(x = mi_rna, y = length_mm)) +
+geom_point() +
+geom_smooth(method = lm, color="black", se=FALSE)+
+labs(title = titleML, x="miRNA", y="Chromosome length (mm)")+
+theme_classic()
+
+#Give the correlation information on the graph
+plotPL <- plotProtein + annotate("text", x=450, y=max(chromosome$length_mm), label="Correlation = 0.606")
+plotML <-plotMiRNA + annotate("text", x=75, y=max(chromosome$length_mm), label="Correlation = 0.737")
+
+grid.arrange(plotPL, plotML,ncol=2)
+```
+
+According to this graph, length of the chromosome shows moderately positive correlation (correlation coefficient > 0.5) with the number of protein coding genes and miRNA. 
+
+**Calculate the summary statistics for the protein data variables length and mass. And create the correlation plot between two parameters**
+```{r}
+data("proteins")
+variable<-proteins%>%
+select(length,mass)
+summary(variable)
+```
+Plot the correlation between proteinlength and protein mass
+```{r}
+#calculate the correlation
+cor(proteins$length, proteins$mass)
+```
+```{r protein, fig.show='hold', fig.width=6, message=FALSE, warning=FALSE, fig.asp=0.618, out.width="50%", fig.align="center"}
+#generate the plot
+proteinplot<- ggplot(proteins, aes(x = length, y = mass)) +
+stat_bin2d()+
+scale_fill_gradient(low="blue", high="red")+
+geom_smooth(method = lm, color="black")+
+labs(title = "The correlation of protein length x mass", x="Length", y="Mass")+
+theme(
+panel.grid.major=element_line(color="black", linewidth = 0.3),
+panel.grid.minor=element_line(color="black", linewidth = 0.1),
+panel.background = element_rect(fill="white"))
+
+#label the selected protein
+selected_points <-proteins[proteins$protein_name%in% c("Mucin-16 ","Titin "), ]
+proteinplot+geom_text(data=selected_points, aes(label=protein_name), vjust=-0.8, hjust=1, size=4, fontface="bold")+
+  annotate("text", x=5000, y=max(proteins$mass), label="Correlation = 0.99")
+
+
+```
+
+According to this graph, the correlation between protein length and mass is strongly positive (0.99). Also, we could see that two proteins, Mucin-16 and Titin, larger in size compared with the rest. We also could log10 all the variables to make each point not overlap. But I personally want to show the 2 large proteins here. 
+

@@ -37,12 +37,7 @@ summary(Mississippi)
 ```
 
 ```{r}
-#generate the table
-data <-tribble (
-  ~Plant_Origin, ~Mean, ~Median,
-  "Quebec", 33.54, 37.15,
-  "Mississippi", 20.88, 19.30)
-knitr::kable(data, caption = "CO2 uptake based on plant origin")
+
 ```
 Another way is using tapply
 ```{r}
@@ -52,4 +47,4 @@ tapply(CO2$uptake, CO2$Type, mean)
 tapply(CO2$uptake, CO2$Type, median)
 ```
 
-**[OPTIONAL]In the airway example data from Bioconductor, how many genes are expressed in each sample? How many genes are ot expressed in any sample?**
+**[OPTIONAL]In the airway example data from Bioconductor, how many genes are expressed in each sample? How many genes are not expressed in any sample?**
