@@ -1,9 +1,9 @@
 ---
 title: "Assignment Week 1"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
   word_document: default
   date: "2023-10-04"
 geometry: margin=1cm
