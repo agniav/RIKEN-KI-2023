@@ -121,8 +121,3 @@ proteinplot+geom_text(data=selected_points, aes(label=protein_name), vjust=-0.8,
 ```
 
 According to this graph, the correlation between protein length and mass is strongly positive (0.99). Also, we could see that two proteins, Mucin-16 and Titin, larger in size compared with the rest. We also could log10 all the variables to make each point not overlap. But I personally want to show the 2 large proteins here. 
-
-```{r}
-rmarkdown::render_site()
-```
-
