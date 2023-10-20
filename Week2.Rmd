@@ -1,0 +1,147 @@
+---
+title: "Week 2"
+output: html_document
+df_print: paged
+date: "2023-10-11"
+---
+```{r}
+#Load the package needed
+library(tidyverse)
+library(ggsignif)
+```
+
+
+```{r setup, include=FALSE}
+#Load all the data needed
+Expression.data <- read.delim("/Users/agniavibriani/Downloads/ExpressionTable.txt")
+Clinical.data <- read.delim("/Users/agniavibriani/Downloads/Clinical_data.txt")
+Annotation <- read.delim("/Users/agniavibriani/Downloads/Annotation.txt")
+cohort <-read.delim("/Users/agniavibriani/Downloads/Cohort.txt")
+```
+
+#Check the expression of gene in OB, POB, and NO
+```{r} 
+#normalize the data into TPM
+normalized<-apply(Expression.data,2,function(x){(x/sum(x))*1000000})
+#transform into data frame
+normalized.df<-as.data.frame(normalized)
+#adding gene names into the table, match the tag cluster with gene names in Annotation df
+normalized.df<-normalized.df %>%
+rownames_to_column(var="Names")#give the name for column of row
+normalized.annot<-right_join(normalized.df, Annotation, by=c('Names'='TC')) #annotate
+
+#filtered selected genes
+Filtered_genes<-filter(normalized.annot, gene %in% c("CTGF","PNPLA3","LDLR","ANGPTL8"))
+#transpose the df. Now the ID sample as a row and gene names as a column
+Filtered_genes<-t(Filtered_genes)
+#change into data frame
+filtergenes<-as.data.frame(Filtered_genes)
+#change the column name as a gene name
+colnames(filtergenes)<-c("LDLR", "PNPLA3", "CTGF") 
+#remove unnecessary rows
+filtergenes<-filtergenes[-c(1,140,141,142), ]
+#Add sample condition by merging the information,matching the filtergenes ID with the cohort condition
+filtergenes<-filtergenes %>%
+rownames_to_column(var="ID")#give the name for column of row
+filtergenes<-right_join(filtergenes, cohort, by=c('ID'='Cond')) #add sample condition by merging the cohort data frame
+
+#plot to the graph
+#change the column type. Character -> numeric
+filtergenes_num<-transform(filtergenes, LDLR=as.numeric(LDLR))
+filtergenes_num<-transform(filtergenes_num, PNPLA3=as.numeric(PNPLA3))
+filtergenes_num<-transform(filtergenes_num, CTGF=as.numeric(CTGF))
+
+#plot to the graph
+#change the column type. Character -> numeric
+custom_colors <- c("OB" = "blue", "POB" = "red", "NO"="black")
+LDLR<-ggplot(filtergenes_num, aes(x=newcond3, y=LDLR, fill=OB_NO_POB)) +
+      geom_boxplot()+
+      scale_fill_manual(values = custom_colors)+
+      labs(x="Metabolic Condition", y="Gene expression level (TPM)", title="LDLR")
+PNPLA3<-ggplot(filtergenes_num, aes(x=OB_NO_POB, y=PNPLA3, fill=Status)) +
+    geom_boxplot()+
+    labs(x="Cohort", y="Gene expression level (TPM)", title="PNPLA3")
+CTGF<-ggplot(filtergenes_num, aes(x=OB_NO_POB, y=CTGF, fill=Status)) +
+    geom_boxplot()+
+    labs(x="Cohort", y="Gene expression level (TPM)", title="CTGF")
+
+#Add significance value (t.test)
+LDLR+
+geom_signif(test=t.test, comparisons = list(
+c("NO.f", "NO.h"),
+c("OB.f", "OB.h"),
+c("POB.f", "POB.h")),
+y_position = c(35,35,35),
+test.args = list(paired = TRUE))+
+scale_x_discrete(labels = c( "fasting", "hyperinsulinemia","fasting", "hyperinsulinemia","fasting", "hyperinsulinemia"))+ #add the name to scale x
+theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+#Add fold change to show the insulin response
+#Fold change: 
+#calculate fold change
+
+
+
+
+
+
+```
+
+for 3 top POB genes
+```{r}
+#filtered selected genes
+Filtered_genes<-filter(normalized.annot, gene %in% "C19orf80")
+#transpose the df. Now the ID sample as a row and gene names as a column
+Filtered_genes<-t(Filtered_genes)
+#change into data frame
+Filtered_genes<-as.data.frame(Filtered_genes)
+#change the column name as a gene name
+colnames(Filtered_genes)<-"C19orf80"
+#remove unnecessary rows. Drop=FALSE to retain that the results is data frame
+Filtered_genes <-Filtered_genes [-c(1,140,141,142), ,drop = FALSE]
+#Add sample condition by merging the information,matching the filtergenes ID with the cohort condition
+Filtered_genes<-Filtered_genes %>%
+rownames_to_column(var="ID")#give the name for column of row
+Filtered_genes<-right_join(Filtered_genes, cohort, by=c('ID'='Cond')) #add sample condition by merging the cohort data frame
+
+#plot to the graph
+#change the column type. Character -> numeric
+Filtered_genes<-transform(Filtered_genes, C19orf80=as.numeric(C19orf80))
+custom_colors <- c("OB" = "blue", "POB" = "red", "NO"="black")
+P1<-ggplot(Filtered_genes, aes(x=newcond3, y=C19orf80, fill=OB_NO_POB)) +
+      geom_boxplot()+
+      scale_fill_manual(values = custom_colors)+
+      labs(x="Metabolic Condition", y="Gene expression level (TPM)", title="C19orf80")
+
+#Add significance value (t.test)
+P1+
+geom_signif(test=t.test, comparisons = list(
+c("NO.f", "NO.h"),
+c("OB.f", "OB.h"),
+c("POB.f", "POB.h")),
+y_position = c(800,800,800),
+test.args = list(paired = TRUE))+
+scale_x_discrete(labels = c( "fasting", "hyperinsulinemia","fasting", "hyperinsulinemia","fasting", "hyperinsulinemia"))+ #add the name to scale x
+theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+#Calculate fold change
+#NOfold_change 
+NO.f <- Filtered_genes$C19orf80[Filtered_genes$newcond3 == "NO.f"]
+NO.h <- Filtered_genes$C19orf80[Filtered_genes$newcond3 == "NO.h"]
+NOfold_change<- NO.h / NO.f
+mean(NOfold_change)
+
+#OBfold_change
+OB.f <- Filtered_genes$C19orf80[Filtered_genes$newcond3 == "OB.f"]
+OB.h <- Filtered_genes$C19orf80[Filtered_genes$newcond3 == "OB.h"]
+OBfold_change<- OB.h / OB.f
+mean(OBfold_change)
+
+#POBfold_change
+POB.f <- Filtered_genes$C19orf80[Filtered_genes$newcond3 == "POB.f"]
+POB.h <- Filtered_genes$C19orf80[Filtered_genes$newcond3 == "POB.h"]
+POBfold_change<- POB.h / POB.f
+mean(POBfold_change)
+
+```
+

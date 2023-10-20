@@ -1,0 +1,212 @@
+---
+title: "DEGs"
+output: html_document
+date: "2023-10-15"
+---
+
+```{r setup, include=FALSE}
+#load package
+library(DESeq2)
+library(tidyverse)
+library(EnhancedVolcano)
+
+#Load all the data needed
+Expression.data <- read.delim("/Users/agniavibriani/Downloads/ExpressionTable.txt")
+Clinical.data <- read.delim("/Users/agniavibriani/Downloads/Clinical_data.txt")
+Annotation <- read.delim("/Users/agniavibriani/Downloads/Annotation.txt")
+cohort <-read.delim("/Users/agniavibriani/Downloads/Cohort.txt")
+
+#Add gene names to Expression.data table
+Expression.annot<-Expression.data %>%
+rownames_to_column(var="TC")#give the name for column of row
+Expression.annot<-merge(Annotation, Expression.annot, by.x="TC", by.y="TC")
+Expression.annot<-subset(Expression.annot, select = -c(TC, Annotation, Type))
+```
+
+NO group
+```{r}
+#Filter the NO group - cohort information
+NOcoldata <-filter(cohort, OB_NO_POB == "NO")
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+NOcts <-Expression.annot[ ,(NOcoldata$Cond)]
+#change Status column as factor
+NOcoldata$Status <-factor(NOcoldata$Status)
+#Input the dataset from Matrix
+NOdds <- DESeqDataSetFromMatrix(countData = NOcts,
+                              colData = NOcoldata,
+                              design = ~ Status)
+NOdds
+#Differentially expressed genes
+NOdds <-DESeq(NOdds)
+#Take a look at the results table
+NOres <-results(NOdds)
+NOres
+#Take a look at summary of the results table
+summary(NOres)
+#build a volcano plot
+#with() 
+with(NOres, plot(log2FoldChange, -log10(pvalue), pch=20, main="Volcano plot NO"))
+```
+POB
+```{r}
+#Filter the POB group - cohort information
+POBcoldata <-filter(cohort, OB_NO_POB == "POB")
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+POBcts <-Expression.data[ ,(POBcoldata$Cond)]
+#change Status column as factor
+POBcoldata$Status <-factor(POBcoldata$Status)
+#Input the dataset from Matrix
+POBdds <- DESeqDataSetFromMatrix(countData = POBcts,
+                              colData = POBcoldata,
+                              design = ~ Status)
+POBdds
+#Differentially expressed genes
+POBdds <-DESeq(POBdds)
+#Take a look at the results table
+POBres <-results(POBdds)
+POBres
+#Take a look at summary of the results table
+summary(POBres)
+#Change into data frame
+POBres_df <-as.data.frame(POBres)
+#Annotate the TC into gene names, so it appears on the volcano plot
+POBres_df<-POBres_df %>%
+rownames_to_column(var="TC")#give the name for column of row
+POBres_df<-merge(Annotation, POBres_df, by.x="TC", by.y="TC")
+POBres_df<-subset(POBres_df, select = -c(TC, Annotation, Type))
+#omit the NA genes
+POBres_df <-na.omit(POBres_df)
+#See the top 6 siginificant genes and check if I still have NA or not
+POBsig <- POBres_df[order(POBres_df$padj),]
+head(POBsig)
+#Annotate which genes are upregulated and downregulated
+POBres_df$diffexpressed <- "NO"
+#upregulated genes if log2Foldchange > 0.6 and padj < 0.05, set as "UP" 
+POBres_df$diffexpressed[POBres_df$log2FoldChange > 0.6 & POBres_df$pvalue < 0.05] <- "UP"
+#downregulated genes if log2Foldchange < -0.6 and padj < 0.05, set as "DOWN"
+POBres_df$diffexpressed[POBres_df$log2FoldChange < -0.6 & POBres_df$pvalue < 0.05] <- "DOWN"
+table(POBres_df$diffexpressed)
+
+#Add gene names to only top 3 significance genes
+POBres_df$label <- NA
+top3_genes <- head(POBres_df[order(POBres_df$pvalue), ], 3) #order the pvalue 
+POBres_df$label[POBres_df$pvalue %in% top3_genes$pvalue] <- top3_genes$gene
+
+#Build volcano plot
+POBplot <-ggplot(data=POBres_df, aes(x=log2FoldChange, y=-log10(pvalue), col=diffexpressed))+
+  geom_point()+
+  theme_bw()+ 
+  geom_vline(xintercept=c(-0.6, 0.6), col="black")+
+  geom_hline(yintercept=-log10(0.05), col="black")+
+  labs(title = "Insulin response in POB cohort", x="Insulin response (log2FoldChange (h/f))", y="Significance (-log10(pvalue)")
+POBplot
+
+```
+
+OB
+```{r}
+#Filter the POB group - cohort information
+OBcoldata <-filter(cohort, OB_NO_POB == "OB")
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+OBcts <-Expression.annot[ ,(OBcoldata$Cond)]
+#change Status column as factor
+OBcoldata$Status <-factor(OBcoldata$Status)
+#Input the dataset from Matrix
+OBdds <- DESeqDataSetFromMatrix(countData = OBcts,
+                              colData = OBcoldata,
+                              design = ~ Status)
+OBdds
+#Differentially expressed genes
+OBdds <-DESeq(OBdds)
+#Take a look at the results table
+OBres <-results(OBdds)
+#Take a look at summary of the results table
+summary(OBres)
+#build a volcano plot
+#with() 
+with(OBres, plot(log2FoldChange, -log10(pvalue), pch=20, main="Volcano plot OB"))
+```
+OB vs POB
+```{r}
+#Filter the POB group - cohort information
+POOBcoldata <-filter(cohort, OB_NO_POB == c("OB","POB"))
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+POOBcts <-Expression.data[ ,(POOBcoldata$Cond)]
+#change Status column as factor
+POOBcoldata$Status <-factor(POOBcoldata$Status)
+POOBcoldata$OB_NO_POB <-factor(POOBcoldata$OB_NO_POB)
+#Input the dataset from Matrix
+POOBdds <- DESeqDataSetFromMatrix(countData = POOBcts,
+                              colData = POOBcoldata,
+                              design = ~OB_NO_POB)
+POOBdds
+#Differentially expressed genes
+POOBdds <-DESeq(POOBdds)
+#Take a look at the results table
+POOBres <-results(POOBdds)
+#Take a look at summary of the results table
+summary(POOBres)
+#change the Deseq results into data frame
+POOBres_df <-as.data.frame(POOBres)
+#Annotate the TC into gene names, so it appears on the volcano plot
+POOBres_df<-POOBres_df %>%
+rownames_to_column(var="TC")#give the name for column of row
+POOBres_df<-merge(Annotation, POOBres_df, by.x="TC", by.y="TC")
+POOBres_df<-subset(POOBres_df, select = -c(TC, Annotation, Type))
+#See the top 6 siginificant genes
+POOBsig <- POOBres_df[order(POOBres_df$padj),]
+head(POOBsig)
+#omit the NA genes
+POOBres_df <-na.omit(POOBres_df)
+#See the top 6 siginificant genes and check if I still have NA or not
+POOBsig <- POOBres_df[order(POOBres_df$padj),]
+head(POOBsig)
+
+#Build volcano plot
+EnhancedVolcano(POOBres_df,
+  lab = as.character(POOBres_df$gene),
+  x = 'log2FoldChange',
+  y = 'pvalue',
+  title = "OB vs POB")
+```
+
+NO vs POB
+```{r}
+#Filter the POB group - cohort information
+NOPOBcoldata <-filter(cohort, OB_NO_POB == c("NO","POB"))
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+NOPOBcts <-Expression.data[ ,(NOPOBcoldata$Cond)]
+#change Status column as factor
+NOPOBcoldata$Status <-factor(NOPOBcoldata$Status)
+NOPOBcoldata$OB_NO_POB <-factor(NOPOBcoldata$OB_NO_POB)
+#Input the dataset from Matrix
+NOPOBdds <- DESeqDataSetFromMatrix(countData = NOPOBcts,
+                              colData = NOPOBcoldata,
+                              design = ~OB_NO_POB)
+#Differentially expressed genes
+NOPOBdds <-DESeq(NOPOBdds)
+#Take a look at the results table
+NOPOBres <-results(NOPOBdds)
+#Take a look at summary of the results table
+summary(NOPOBres)
+#change the Deseq results into data frame
+NOPOBres_df <-as.data.frame(NOPOBres)
+#Annotate the TC into gene names, so it appears on the volcano plot
+NOPOBres_df<-NOPOBres_df %>%
+rownames_to_column(var="TC")#give the name for column of row
+NOPOBres_df<-merge(Annotation, NOPOBres_df, by.x="TC", by.y="TC")
+NOPOBres_df<-subset(NOPOBres_df, select = -c(TC, Annotation, Type))
+#omit the NA genes
+NOPOBres_df <-na.omit(NOPOBres_df)
+#See the top 6 siginificant genes and check if I still have NA or not
+NOPOBsig <- NOPOBres_df[order(NOPOBres_df$padj),]
+head(NOPOBsig)
+
+#Build volcano plot
+EnhancedVolcano(NOPOBres_df,
+  lab = as.character(NOPOBres_df$gene),
+  x = 'log2FoldChange',
+  y = 'pvalue',
+  title = "NO vs POB")
+```
+

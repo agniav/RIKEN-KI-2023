@@ -1,0 +1,106 @@
+---
+title: "Check the insulin response POB vs OB"
+output: html_document
+date: "2023-10-16"
+---
+
+```{r setup, include=FALSE}
+#load the package needed
+library(DESeq2)
+library(tidyverse)
+
+#Load all the data needed
+Expression.data <- read.delim("/Users/agniavibriani/Downloads/ExpressionTable.txt")
+Clinical.data <- read.delim("/Users/agniavibriani/Downloads/Clinical_data.txt")
+Annotation <- read.delim("/Users/agniavibriani/Downloads/Annotation.txt")
+cohort <-read.delim("/Users/agniavibriani/Downloads/Cohort.txt")
+```
+
+POB
+```{r}
+#Filter the POB group - cohort information
+POBcoldata <-filter(cohort, OB_NO_POB == "POB")
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+POBcts <-Expression.data[ ,(POBcoldata$Cond)]
+#change Status column as factor
+POBcoldata$Status <-factor(POBcoldata$Status)
+#Input the dataset from Matrix
+POBdds <- DESeqDataSetFromMatrix(countData = POBcts,
+                              colData = POBcoldata,
+                              design = ~ Status)
+#Differentially expressed genes
+POBdds <-DESeq(POBdds)
+#Take a look at the results table
+POBres <-results(POBdds)
+#Take a look at summary of the results table
+summary(POBres)
+#Change into data frame
+POBres_df <-as.data.frame(POBres)
+#Add TC column names
+POBres_df<-POBres_df %>%
+rownames_to_column(var="TC")#give the name for column of row
+#Change the column name of log2Foldchange into log2FoldChangePOB
+colnames(POBres_df)[3]<- "log2FoldChange_POB"
+#Check the NA value and remove it
+sum(is.na(POBres_df$log2FoldChange_POB))
+POBres_df <-na.omit(POBres_df)
+```
+
+OB
+```{r}
+#Filter the POB group - cohort information
+OBcoldata <-filter(cohort, OB_NO_POB == "OB")
+#retain counts only from NO group, based on the "COND" column in NOcoldata information
+OBcts <-Expression.data[ ,(OBcoldata$Cond)]
+#change Status column as factor
+OBcoldata$Status <-factor(OBcoldata$Status)
+#Input the dataset from Matrix
+OBdds <- DESeqDataSetFromMatrix(countData = OBcts,
+                              colData = OBcoldata,
+                              design = ~ Status)
+#Differentially expressed genes
+OBdds <-DESeq(OBdds)
+#Take a look at the results table
+OBres <-results(OBdds)
+#Take a look at summary of the results table
+summary(OBres)
+#Change into data frame
+OBres_df <-as.data.frame(OBres)
+#Add TC column names
+OBres_df<-OBres_df %>%
+rownames_to_column(var="TC")#give the name for column of row
+#Change the column name of log2Foldchange into log2FoldChangePOB
+colnames(OBres_df)[3]<- "log2FoldChange_OB"
+```
+
+Find the union and intersect 
+```{r}
+#Find the union and intersection between POB and OB
+union_POB_OB <- unique(c(OBres_df$TC, POBres_df$TC))
+intersection_POB_OB <- intersect(OBres_df$TC, POBres_df$TC)
+#Make a new data frame to indicate union and intersect of TC between POB and OB. I should do it one by one. I tried to merge union and intersection but the rows number doesnt match
+union_df <- data.frame(POB = union(POBres_df$TC, OBres_df$TC), OB = union(POBres_df$TC, OBres_df$TC))
+intersection_df <- data.frame(POB = intersection_POB_OB, OB = intersection_POB_OB)
+#Indicate which TC is union which is not
+union_df$In_Union <- TRUE
+union_df$In_Intersection <- FALSE
+#indicate which TC is intersect and which is not
+intersection_df$In_Union <- FALSE
+intersection_df$In_Intersection <- TRUE
+#merge All so then I have a union and intersection information
+Union_Intersect <- rbind(union_df, intersection_df)
+```
+
+Plot the correlation of insulin response between POB and OB
+```{r}
+#merge the POB and OB first
+mergePOB_OB <- merge(POBres_df, OBres_df, by = "TC", all = TRUE)
+ggplot(mergePOB_OB, aes(x=log2FoldChange_OB, y=log2FoldChange_POB)) +
+  geom_point(size=2, shape=23)+
+  labs(title = "Insulin response in POB vs OB", x="Insulin response in OB (log2FoldChange (h/f))", y="Insulin response in POB (log2FoldChange (h/f))")+
+  xlim(-5, 5)+
+  ylim(-5,5)
+
+
+```
+
